@@ -10,7 +10,8 @@
     "BastionPlayerManagerOnPlayerJoinMixin",
     "BastionPlayerNetworkHandlerOnPlayerLeftMixin",
     "BastionServerChatListenerMixin",
-    "BastionServerRunMixin"
+    "BastionServerRunMixin",
+    "CommandManagerSeedMixin"
   ],
   "client": [
   ],
