@@ -90,7 +90,21 @@ public class SBCommand {
 			scoreboard.addObjective(objectiveName, criteria, new LiteralText(displayName).formatted(Formatting.GOLD), criteria.getCriterionType());
 			
 			ScoreboardObjective newScoreboardObjective = scoreboardObjective = scoreboard.getNullableObjective(objectiveName);
-			initialize(source, newScoreboardObjective, minecraftItem, type);
+			
+			try {
+				
+				initialize(source, newScoreboardObjective, minecraftItem, type);
+				
+	        } catch (Exception e) {
+	        	
+	        	scoreboard.removeObjective(newScoreboardObjective);
+	        	text = new LiteralText("Ha ocurrido un error al momento de seleccionar un scoreboard, inténtelo de nuevo.").formatted(Formatting.RED);
+				source.getMinecraftServer().getPlayerManager().broadcastChatMessage(text, MessageType.CHAT, entity.getUuid());
+				
+				return Command.SINGLE_SUCCESS;
+	        	
+	        }
+			
 			scoreboard.setObjectiveSlot(1, newScoreboardObjective);
 			
 			text = new LiteralText(entity.getEntityName() + " ha seleccionado el scoreboard " + Formatting.GOLD + "[" + scoreboardObjective.getDisplayName().asString() + "]");
@@ -173,7 +187,18 @@ public class SBCommand {
 				
 				ServerStatHandler serverStatHandler = new ServerStatHandler(server, stat);
 				value = serverStatHandler.getStat(finalStat);
-				playerName = server.getUserCache().getByUuid(uuid).getName();
+				
+				GameProfile gameProfile = server.getUserCache().getByUuid(uuid);
+				
+				if(gameProfile != null) {
+					
+					playerName = gameProfile.getName();
+					
+				} else {
+					
+					continue;
+					
+				}
 				
 			}
 			
