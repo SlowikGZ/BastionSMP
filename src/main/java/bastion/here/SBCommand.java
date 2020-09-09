@@ -6,11 +6,11 @@ import static net.minecraft.server.command.CommandManager.literal;
 import java.io.File;
 import java.util.UUID;
 
+import com.mojang.authlib.GameProfile;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
-import carpet.fakes.MinecraftServerInterface;
 import net.minecraft.block.Block;
 import net.minecraft.command.argument.ItemStackArgument;
 import net.minecraft.command.argument.ItemStackArgumentType;
@@ -30,6 +30,7 @@ import net.minecraft.stat.Stats;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import net.minecraft.world.level.ServerWorldProperties;
 
 public class SBCommand {
 	
@@ -37,8 +38,8 @@ public class SBCommand {
 
 		LiteralArgumentBuilder<ServerCommandSource> literalargumentbuilder = literal("sb")
                 .then(literal("broken")
-                    .then(argument("item", ItemStackArgumentType.itemStack())
-                            .executes(ctx -> showSidebar(ctx.getSource(), ItemStackArgumentType.getItemStackArgument(ctx, "item"), "broken"))))
+                		.then(argument("item", ItemStackArgumentType.itemStack())
+                				.executes(ctx -> showSidebar(ctx.getSource(), ItemStackArgumentType.getItemStackArgument(ctx, "item"), "broken"))))
                 .then(literal("crafted")
                         .then(argument("item", ItemStackArgumentType.itemStack())
                                 .executes(ctx -> showSidebar(ctx.getSource(), ItemStackArgumentType.getItemStackArgument(ctx, "item"), "crafted"))))
@@ -47,7 +48,7 @@ public class SBCommand {
                                 .executes(ctx -> showSidebar(ctx.getSource(), ItemStackArgumentType.getItemStackArgument(ctx, "item"), "mined"))))
                 .then(literal("used")
                         .then(argument("item", ItemStackArgumentType.itemStack())
-                            .executes(ctx -> showSidebar(ctx.getSource(), ItemStackArgumentType.getItemStackArgument(ctx, "item"), "used"))))
+                        		.executes(ctx -> showSidebar(ctx.getSource(), ItemStackArgumentType.getItemStackArgument(ctx, "item"), "used"))))
                 .then(literal("remove")
                         .executes(ctx -> hideSidebar(ctx.getSource())));
 
@@ -69,7 +70,7 @@ public class SBCommand {
 			
 			if (scoreboard.getObjectiveForSlot(1) == scoreboardObjective) {
 				
-				text = new LiteralText("Ya se está mostrando ese scoreboard");
+				text = new LiteralText("Ya se estÃ¡ mostrando ese scoreboard");
 		        
 			} else {
 				
@@ -90,7 +91,21 @@ public class SBCommand {
 			scoreboard.addObjective(objectiveName, criteria, new LiteralText(displayName).formatted(Formatting.GOLD), criteria.getCriterionType());
 			
 			ScoreboardObjective newScoreboardObjective = scoreboardObjective = scoreboard.getNullableObjective(objectiveName);
-			initialize(source, newScoreboardObjective, minecraftItem, type);
+			
+			try {
+
+				initialize(source, newScoreboardObjective, minecraftItem, type);
+
+	        } catch (Exception e) {
+
+	        	scoreboard.removeObjective(newScoreboardObjective);
+	        	text = new LiteralText("Ha ocurrido un error al momento de seleccionar un scoreboard, inténtelo de nuevo.").formatted(Formatting.RED);
+				source.getMinecraftServer().getPlayerManager().broadcastChatMessage(text, MessageType.CHAT, entity.getUuid());
+
+				return Command.SINGLE_SUCCESS;
+
+	        }
+			
 			scoreboard.setObjectiveSlot(1, newScoreboardObjective);
 			
 			text = new LiteralText(entity.getEntityName() + " ha seleccionado el scoreboard " + Formatting.GOLD + "[" + scoreboardObjective.getDisplayName().asString() + "]");
@@ -130,7 +145,7 @@ public class SBCommand {
 		Scoreboard scoreboard = source.getMinecraftServer().getScoreboard();
 		MinecraftServer server = source.getMinecraftServer();
 		
-		File file = new File(((MinecraftServerInterface)server).getCMSession().getWorldDirectory(server.getOverworld().getRegistryKey()), "stats");
+		File file = new File(((ServerWorldProperties)server.getOverworld().getLevelProperties()).getLevelName(), "stats");
 		File[] stats = file.listFiles();
 		
 		for (File stat: stats) {
@@ -173,7 +188,18 @@ public class SBCommand {
 				
 				ServerStatHandler serverStatHandler = new ServerStatHandler(server, stat);
 				value = serverStatHandler.getStat(finalStat);
-				playerName = server.getUserCache().getByUuid(uuid).getName();
+				
+				GameProfile gameProfile = server.getUserCache().getByUuid(uuid);
+
+				if(gameProfile != null) {
+
+					playerName = gameProfile.getName();
+
+				} else {
+
+					continue;
+
+				}
 				
 			}
 			
